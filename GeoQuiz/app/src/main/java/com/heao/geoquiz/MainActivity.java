@@ -20,20 +20,20 @@ public class MainActivity extends AppCompatActivity {
         mTrueButton = findViewById(R.id.true_button);
         mFalseButton = findViewById(R.id.false_button);
 
-        Toast mTrueToast = Toast.makeText(MainActivity.this, R.string.correct_toast, Toast.LENGTH_SHORT);
-        Toast mFalseToast = Toast.makeText(MainActivity.this, R.string.incorrect_toast, Toast.LENGTH_SHORT);
+        Toast trueToast = Toast.makeText(MainActivity.this, R.string.correct_toast, Toast.LENGTH_SHORT);
+        Toast falseToast = Toast.makeText(MainActivity.this, R.string.incorrect_toast, Toast.LENGTH_SHORT);
 
         mTrueButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                mTrueToast.setGravity(Gravity.TOP, 0, 0);
-                mTrueToast.show();
+                trueToast.setGravity(Gravity.TOP, 0, 0);
+                trueToast.show();
             }
         });
 
         mFalseButton.setOnClickListener(v -> {
-            mFalseToast.setGravity(Gravity.TOP, 0, 0);
-            mFalseToast.show();
+            falseToast.setGravity(Gravity.TOP, 0, 0);
+            falseToast.show();
         });
     }
 }
