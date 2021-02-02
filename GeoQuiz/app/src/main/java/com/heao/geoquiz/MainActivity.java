@@ -1,7 +1,7 @@
 package com.heao.geoquiz;
 
-import androidx.appcompat.app.AppCompatActivity;
-
+import android.app.Activity;
+import android.content.Intent;
 import android.os.Bundle;
 import android.util.Log;
 import android.widget.Button;
@@ -9,20 +9,25 @@ import android.widget.ImageButton;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.appcompat.app.AppCompatActivity;
+
 import java.text.DecimalFormat;
 
 public class MainActivity extends AppCompatActivity {
     private static final String TAG = "QuizActivity";
     private static final String KEY_INDEX = "index";
+    private static final int REQUEST_CODE_CHEAT = 0;
 
     private Button mTrueButton;
     private Button mFalseButton;
     private ImageButton mNextButton;
     private ImageButton mPrevButton;
+    private Button mCheatButton;
     private TextView mQuestionTextView;
 
     private int mCurrentIndex;
     private int mCorrectCount;
+    private boolean mIsCheater;
 
     private Question[] mQuestionBank = new Question[]{
             new Question(R.string.question_australia, true),
@@ -33,6 +38,7 @@ public class MainActivity extends AppCompatActivity {
             new Question(R.string.question_asia, true)
     };
     private boolean[] mIsAnswered = new boolean[mQuestionBank.length];
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -48,6 +54,7 @@ public class MainActivity extends AppCompatActivity {
         mFalseButton = findViewById(R.id.false_button);
         mNextButton = findViewById(R.id.next_button);
         mPrevButton = findViewById(R.id.prev_button);
+        mCheatButton = findViewById(R.id.cheat_button);
         mQuestionTextView = findViewById(R.id.question_text_view);
 
         // 组件初始化完毕后再执行更新操作
@@ -55,22 +62,20 @@ public class MainActivity extends AppCompatActivity {
 
         // 为view绑定相应的事件
         mTrueButton.setOnClickListener(v -> {
-            if(!mIsAnswered[mCurrentIndex]){
+            if (!mIsAnswered[mCurrentIndex]) {
                 mIsAnswered[mCurrentIndex] = true;
                 checkAnswer(true);
                 setButtonStatus();
-            }
-            else{
+            } else {
                 Toast.makeText(this, "This question is answered.", Toast.LENGTH_SHORT).show();
             }
         });
         mFalseButton.setOnClickListener(v -> {
-            if(!mIsAnswered[mCurrentIndex]){
+            if (!mIsAnswered[mCurrentIndex]) {
                 mIsAnswered[mCurrentIndex] = true;
                 checkAnswer(false);
                 setButtonStatus();
-            }
-            else{
+            } else {
                 Toast.makeText(this, "This question is answered.", Toast.LENGTH_SHORT).show();
             }
         });
@@ -81,6 +86,11 @@ public class MainActivity extends AppCompatActivity {
         mNextButton.setOnClickListener(v -> {
             mCurrentIndex = (mCurrentIndex + 1) % mQuestionBank.length;
             updateQuestion();
+        });
+        mCheatButton.setOnClickListener(v -> {
+            boolean answerIsTrue = mQuestionBank[mCurrentIndex].isAnswerTrue();
+            Intent intent = CheatActivity.newIntent(MainActivity.this, answerIsTrue);
+            startActivityForResult(intent, REQUEST_CODE_CHEAT);
         });
         mQuestionTextView.setOnClickListener(v -> {
             mCurrentIndex = (mCurrentIndex + 1) % mQuestionBank.length;
@@ -114,6 +124,20 @@ public class MainActivity extends AppCompatActivity {
     }
 
     @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (resultCode != Activity.RESULT_OK) {
+            return;
+        }
+        if (requestCode == REQUEST_CODE_CHEAT) {
+            if (data == null) {
+                return;
+            }
+            mIsCheater = CheatActivity.wasAnswerShown(data);
+        }
+    }
+
+    @Override
     public void onStop() {
         super.onStop();
         Log.d(TAG, "onStop() called");
@@ -126,34 +150,35 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void updateQuestion() {
+        mIsCheater = false;
+        showAccuracy();
         setButtonStatus();
         mQuestionTextView.setText(mQuestionBank[mCurrentIndex].getTextResId());
-        if(isAllAnswered()){
-            double accuracy = (double) 100 * mCorrectCount / mQuestionBank.length;
-            DecimalFormat df = new DecimalFormat("##.##");
-            Toast.makeText(this, String.format("Accuracy : " + df.format(accuracy) + "%%"), Toast.LENGTH_SHORT).show();
-        }
     }
 
     private void checkAnswer(boolean userPressedTrue) {
         boolean answerIsTrue = mQuestionBank[mCurrentIndex].isAnswerTrue();
-        int messageResId = 0;
-        if (userPressedTrue == answerIsTrue) {
-            messageResId = R.string.correct_toast;
-            // 记录回答正确的题目数
-            mCorrectCount++;
+        int messageResId;
+        if (mIsCheater) {
+            messageResId = R.string.judgment_toast;
         } else {
-            messageResId = R.string.incorrect_toast;
+            if (userPressedTrue == answerIsTrue) {
+                messageResId = R.string.correct_toast;
+                // 记录回答正确的题目数
+                mCorrectCount++;
+            } else {
+                messageResId = R.string.incorrect_toast;
+            }
         }
+
         Toast.makeText(this, messageResId, Toast.LENGTH_SHORT).show();
     }
 
-    public void setButtonStatus(){
-        if(!mIsAnswered[mCurrentIndex]){
+    public void setButtonStatus() {
+        if (!mIsAnswered[mCurrentIndex]) {
             mTrueButton.setEnabled(true);
             mFalseButton.setEnabled(true);
-        }
-        else{
+        } else {
             mTrueButton.setEnabled(false);
             mFalseButton.setEnabled(false);
         }
@@ -166,5 +191,13 @@ public class MainActivity extends AppCompatActivity {
             }
         }
         return true;
+    }
+
+    public void showAccuracy() {
+        if (isAllAnswered()) {
+            double accuracy = (double) 100 * mCorrectCount / mQuestionBank.length;
+            DecimalFormat df = new DecimalFormat("##.##");
+            Toast.makeText(this, "Accuracy : " + df.format(accuracy) + "%", Toast.LENGTH_SHORT).show();
+        }
     }
 }
