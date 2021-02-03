@@ -1,6 +1,8 @@
 package com.heao.criminalintent;
 
+import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.Locale;
 import java.util.UUID;
 
 public class Crime {
@@ -44,5 +46,9 @@ public class Crime {
 
     public void setSolved(boolean solved) {
         mSolved = solved;
+    }
+
+    public String getDateString(){
+        return new SimpleDateFormat("h:mm a, EEE, MMM dd, yyyy", Locale.US).format(getDate());
     }
 }
