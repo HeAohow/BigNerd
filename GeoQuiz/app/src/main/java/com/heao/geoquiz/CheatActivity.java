@@ -37,7 +37,7 @@ public class CheatActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_cheat);
-
+        // Activity之间通讯 2 子Activity被唤醒
         mAnswerIsTrue = getIntent().getBooleanExtra(EXTRA_ANSWER_IS_TRUE, false);
         mAnswerTextView = findViewById(R.id.answer_text_view);
         mShowAnswerButton = findViewById(R.id.show_answer_button);
@@ -48,8 +48,10 @@ public class CheatActivity extends AppCompatActivity {
             } else {
                 mAnswerTextView.setText(R.string.false_button);
             }
+            // Activity之间通讯 3 设置子Activity返回的结果
             setAnswerShownResult(true);
-//            Log.d("Build.VERSION.SDK_INT", " " + Build.VERSION.SDK_INT);
+
+            // 根据SDK版本决定是否显示动画特效
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
                 int cx = mShowAnswerButton.getWidth() / 2;
                 int cy = mShowAnswerButton.getHeight() / 2;
