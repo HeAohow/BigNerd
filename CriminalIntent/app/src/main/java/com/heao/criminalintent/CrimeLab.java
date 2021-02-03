@@ -3,13 +3,15 @@ package com.heao.criminalintent;
 import android.content.Context;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.UUID;
 
 public class CrimeLab {
-    // 单例类
+    // 单例模式
     private static CrimeLab sCrimeLab;
     private List<Crime> mCrimes;
+    private HashMap<UUID, Crime> mCrimeMap;
 
     public static CrimeLab get(Context context) {
         if (sCrimeLab == null) {
@@ -20,11 +22,13 @@ public class CrimeLab {
 
     private CrimeLab(Context context) {
         mCrimes = new ArrayList<>();
+        mCrimeMap = new HashMap<>();
         for (int i = 0; i < 100; i++) {
             Crime crime = new Crime();
             crime.setTitle("Crime #" + i);
             crime.setSolved(i % 2 == 0); // Every other one
             mCrimes.add(crime);
+            mCrimeMap.put(crime.getId(), crime);
         }
     }
 
@@ -33,11 +37,27 @@ public class CrimeLab {
     }
 
     public Crime getCrime(UUID id) {
+//        for (Crime crime : mCrimes) {
+//            if (crime.getId().equals(id)) {
+//                return crime;
+//            }
+//        }
+//        return null;
+        if (mCrimeMap.containsKey(id)) {
+            return mCrimeMap.get(id);
+        } else {
+            return null;
+        }
+    }
+
+    public int getPosition(UUID id) {
+        int position = 0;
         for (Crime crime : mCrimes) {
             if (crime.getId().equals(id)) {
-                return crime;
+                return position;
             }
+            position++;
         }
-        return null;
+        return -1;
     }
 }
