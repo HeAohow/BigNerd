@@ -15,12 +15,16 @@ import android.widget.EditText;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
+import androidx.fragment.app.FragmentManager;
 
 import java.util.Date;
 import java.util.UUID;
 
 public class CrimeFragment extends Fragment {
     private static final String ARG_CRIME_ID = "crime_id";
+    private static final String DIALOG_DATE = "DialogDate";
+    private static final int REQUEST_DATE = 0;
+
     private Crime mCrime;
     private EditText mTitleField;
     private Button mDateButton;
@@ -56,7 +60,12 @@ public class CrimeFragment extends Fragment {
         mTitleField.setText(mCrime.getTitle());
         mSolvedCheckBox.setChecked(mCrime.isSolved());
         mDateButton.setText(mCrime.getDateString());
-        mDateButton.setEnabled(false);
+        mDateButton.setOnClickListener((view) -> {
+            FragmentManager fm = getFragmentManager();
+            DatePickerFragment dialog = DatePickerFragment.newInstance(mCrime.getDate());
+            dialog.setTargetFragment(CrimeFragment.this, REQUEST_DATE);
+            dialog.show(fm, DIALOG_DATE);
+        });
 
         mTitleField.addTextChangedListener(new TextWatcher() {
             @Override
@@ -83,6 +92,19 @@ public class CrimeFragment extends Fragment {
         });
 
         return v;
+    }
+
+    @Override
+    public void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if(resultCode == Activity.RESULT_OK){
+            if(requestCode == REQUEST_DATE){
+                Date date = (Date)data.getSerializableExtra(DatePickerFragment.EXTRA_DATE);
+                mCrime.setDate(date);
+                mDateButton.setText(mCrime.getDateString());
+                returnResult();
+            }
+        }
     }
 
     public void returnResult() {
