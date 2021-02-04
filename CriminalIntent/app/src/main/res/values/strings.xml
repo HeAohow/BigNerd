@@ -5,6 +5,15 @@
     <string name="crime_details_label">Details</string>
     <string name="crime_solved_label">Solved</string>
     <string name="to_first">Jump to first</string>
-    <string name="to_last">Jump to last</string>
+    <string name="to_last">Jump to last </string>
     <string name="date_picker_title">Date of crime:</string>
+    <string name="new_crime">New Crime</string>
+    <string name="delete_crime">Delete Crime</string>
+    <string name="no_crime">There\' s not a crime yet.\nPress the \"add\" icon on upper right to create one!</string>
+    <string name="show_subtitle">Show Subtitle</string>
+    <string name="hide_subtitle">Hide Subtitle</string>
+    <plurals name="subtitle_plural">
+        <item quantity="one">%d crime</item>
+        <item quantity="other">%d crimes</item>
+    </plurals>
 </resources>

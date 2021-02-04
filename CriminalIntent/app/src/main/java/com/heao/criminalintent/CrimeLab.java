@@ -23,13 +23,6 @@ public class CrimeLab {
     private CrimeLab(Context context) {
         mCrimes = new ArrayList<>();
         mCrimeMap = new HashMap<>();
-        for (int i = 0; i < 100; i++) {
-            Crime crime = new Crime();
-            crime.setTitle("Crime #" + i);
-            crime.setSolved(i % 2 == 0); // Every other one
-            mCrimes.add(crime);
-            mCrimeMap.put(crime.getId(), crime);
-        }
     }
 
     public List<Crime> getCrimes() {
@@ -37,12 +30,6 @@ public class CrimeLab {
     }
 
     public Crime getCrime(UUID id) {
-//        for (Crime crime : mCrimes) {
-//            if (crime.getId().equals(id)) {
-//                return crime;
-//            }
-//        }
-//        return null;
         if (mCrimeMap.containsKey(id)) {
             return mCrimeMap.get(id);
         } else {
@@ -59,5 +46,15 @@ public class CrimeLab {
             position++;
         }
         return -1;
+    }
+
+    public void addCrime(Crime c) {
+        mCrimes.add(c);
+        mCrimeMap.put(c.getId(), c);
+    }
+
+    public void deleteCrime(Crime c) {
+        mCrimes.remove(c);
+        mCrimeMap.remove(c.getId());
     }
 }

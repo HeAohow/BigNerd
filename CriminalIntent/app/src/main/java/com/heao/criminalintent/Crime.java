@@ -1,8 +1,5 @@
 package com.heao.criminalintent;
 
-import android.content.Context;
-import android.content.Intent;
-
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Locale;
@@ -13,7 +10,6 @@ public class Crime {
     private String mTitle;
     private Date mDate;
     private boolean mSolved;
-
 
     public Crime() {
         mId = UUID.randomUUID();
@@ -53,6 +49,6 @@ public class Crime {
     }
 
     public String getDateString() {
-        return new SimpleDateFormat("h:mm a, EEE, MMM dd, yyyy", Locale.US).format(getDate());
+        return new SimpleDateFormat("EEE MMM dd h:mm a yyyy", Locale.US).format(getDate());
     }
 }

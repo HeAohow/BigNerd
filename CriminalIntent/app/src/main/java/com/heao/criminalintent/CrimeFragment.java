@@ -6,6 +6,9 @@ import android.os.Bundle;
 import android.text.Editable;
 import android.text.TextWatcher;
 import android.view.LayoutInflater;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
@@ -42,9 +45,10 @@ public class CrimeFragment extends Fragment {
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-
+        // 获取Bundle中的参数
         UUID crimeId = (UUID) getArguments().getSerializable(ARG_CRIME_ID);
         mCrime = CrimeLab.get(getActivity()).getCrime(crimeId);
+        setHasOptionsMenu(true);
     }
 
     @Nullable
@@ -63,6 +67,7 @@ public class CrimeFragment extends Fragment {
         mDateButton.setOnClickListener((view) -> {
             FragmentManager fm = getFragmentManager();
             DatePickerFragment dialog = DatePickerFragment.newInstance(mCrime.getDate());
+            // Fragment之间通信 1. 设置target 2. 直接调用target的onActivityResult方法
             dialog.setTargetFragment(CrimeFragment.this, REQUEST_DATE);
             dialog.show(fm, DIALOG_DATE);
         });
@@ -95,11 +100,31 @@ public class CrimeFragment extends Fragment {
     }
 
     @Override
+    public void onCreateOptionsMenu(@NonNull Menu menu, @NonNull MenuInflater inflater) {
+        super.onCreateOptionsMenu(menu, inflater);
+        inflater.inflate(R.menu.fragment_crime, menu);
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(@NonNull MenuItem item) {
+        switch (item.getItemId()){
+            case R.id.delete_crime:
+                CrimeLab.get(getActivity()).deleteCrime(mCrime);
+                returnResult();
+                getActivity().finish();
+                return true;
+            default:
+                return super.onOptionsItemSelected(item);
+        }
+    }
+
+    @Override
     public void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
+        // 接收从日期选择Fragment返回的结果
         super.onActivityResult(requestCode, resultCode, data);
-        if(resultCode == Activity.RESULT_OK){
-            if(requestCode == REQUEST_DATE){
-                Date date = (Date)data.getSerializableExtra(DatePickerFragment.EXTRA_DATE);
+        if (resultCode == Activity.RESULT_OK) {
+            if (requestCode == REQUEST_DATE) {
+                Date date = (Date) data.getSerializableExtra(DatePickerFragment.EXTRA_DATE);
                 mCrime.setDate(date);
                 mDateButton.setText(mCrime.getDateString());
                 returnResult();
@@ -108,6 +133,8 @@ public class CrimeFragment extends Fragment {
     }
 
     public void returnResult() {
+        // 借助托管的子Activity，将结果返回至主Activity
+        // 改变crime相关参数时调用，更新返回后的视图
         Intent data = CrimeListFragment.ChangedCrimeIntent(mCrime.getId());
         getActivity().setResult(Activity.RESULT_OK, data);
     }

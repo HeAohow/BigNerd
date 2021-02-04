@@ -1,18 +1,15 @@
 package com.heao.criminalintent;
 
-import androidx.annotation.NonNull;
-import androidx.appcompat.app.AppCompatActivity;
-import androidx.fragment.app.Fragment;
-import androidx.fragment.app.FragmentManager;
-import androidx.fragment.app.FragmentStatePagerAdapter;
-import androidx.viewpager2.adapter.FragmentStateAdapter;
-import androidx.viewpager2.widget.ViewPager2;
-
 import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
-import android.view.View;
 import android.widget.Button;
+
+import androidx.annotation.NonNull;
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.fragment.app.Fragment;
+import androidx.viewpager2.adapter.FragmentStateAdapter;
+import androidx.viewpager2.widget.ViewPager2;
 
 import java.util.List;
 import java.util.UUID;
@@ -34,12 +31,10 @@ public class CrimePagerActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_crime_pager);
-        UUID crimeId = (UUID) getIntent().getSerializableExtra(EXTRA_CRIME_ID);
 
         mViewPager = findViewById(R.id.crime_view_pager);
         mToFirstButton = findViewById(R.id.to_first_button);
         mToLastButton = findViewById(R.id.to_last_button);
-
         mCrimes = CrimeLab.get(this).getCrimes();
 
         mViewPager.setAdapter(new FragmentStateAdapter(this) {
@@ -63,7 +58,8 @@ public class CrimePagerActivity extends AppCompatActivity {
                 mToLastButton.setEnabled(true);
                 if (position == 0) {
                     mToFirstButton.setEnabled(false);
-                } else if (position == mCrimes.size() - 1) {
+                }
+                if (position == mCrimes.size() - 1) {
                     mToLastButton.setEnabled(false);
                 }
             }
@@ -71,12 +67,8 @@ public class CrimePagerActivity extends AppCompatActivity {
         mToFirstButton.setOnClickListener((v) -> mViewPager.setCurrentItem(0));
         mToLastButton.setOnClickListener((v) -> mViewPager.setCurrentItem(mCrimes.size() - 1));
 
-        // 将CrimePage定位到之前点击的item页面
-        for (int i = 0; i < mCrimes.size(); i++) {
-            if (mCrimes.get(i).getId().equals(crimeId)) {
-                mViewPager.setCurrentItem(i);
-                break;
-            }
-        }
+        // ViewPager控件加载完成后再设置当前显示页面
+        UUID crimeId = (UUID) getIntent().getSerializableExtra(EXTRA_CRIME_ID);
+        mViewPager.setCurrentItem(CrimeLab.get(this).getPosition(crimeId));
     }
 }
