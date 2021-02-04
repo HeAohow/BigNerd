@@ -21,6 +21,7 @@ import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentManager;
 
 import java.util.Date;
+import java.util.Objects;
 import java.util.UUID;
 
 public class CrimeFragment extends Fragment {
@@ -86,13 +87,14 @@ public class CrimeFragment extends Fragment {
             @Override
             public void afterTextChanged(Editable editable) {
                 mCrime.setTitle(mTitleField.getText().toString());
-                mCrime.setDate(new Date());
+                // 修改
                 returnResult();
             }
         });
 
         mSolvedCheckBox.setOnCheckedChangeListener((compoundButton, b) -> {
             mCrime.setSolved(b);
+            // 修改
             returnResult();
         });
 
@@ -110,6 +112,7 @@ public class CrimeFragment extends Fragment {
         switch (item.getItemId()){
             case R.id.delete_crime:
                 CrimeLab.get(getActivity()).deleteCrime(mCrime);
+                // 删除
                 returnResult();
                 getActivity().finish();
                 return true;
@@ -127,10 +130,18 @@ public class CrimeFragment extends Fragment {
                 Date date = (Date) data.getSerializableExtra(DatePickerFragment.EXTRA_DATE);
                 mCrime.setDate(date);
                 mDateButton.setText(mCrime.getDateString());
+                // 修改
                 returnResult();
             }
         }
     }
+
+    @Override
+    public void onPause() {
+        super.onPause();
+        CrimeLab.get(getActivity()).updateCrime(mCrime);
+    }
+
 
     public void returnResult() {
         // 借助托管的子Activity，将结果返回至主Activity
@@ -138,4 +149,5 @@ public class CrimeFragment extends Fragment {
         Intent data = CrimeListFragment.ChangedCrimeIntent(mCrime.getId());
         getActivity().setResult(Activity.RESULT_OK, data);
     }
+
 }

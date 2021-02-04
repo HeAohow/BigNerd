@@ -3,6 +3,7 @@ package com.heao.criminalintent;
 import android.app.Activity;
 import android.content.Intent;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuInflater;
@@ -27,6 +28,7 @@ public class CrimeListFragment extends Fragment {
     private static final int REQUEST_ADD = 2;
     private static final String CHANGED_CRIME_ID = "com.heao.criminalintent.crimelistfragment.crime_id";
     private static final String SAVED_SUBTITLE_VISIBLE = "subtitle";
+    private static final String TAG = "com.heao.tag";
 
     private RecyclerView mCrimeRecyclerView;
     private CrimeAdapter mAdapter;
@@ -58,7 +60,7 @@ public class CrimeListFragment extends Fragment {
         public void bind(Crime crime) {
             // 绑定视图资源
             mCrime = crime;
-            mTitleTextView.setText(mCrime.getTitle());
+            mTitleTextView.setText(mCrime.getTitle() == null ? "no title" : mCrime.getTitle());
             mDateTextView.setText(mCrime.getDateString());
             mSolvedImageView.setVisibility(crime.isSolved() ? View.VISIBLE : View.GONE);
         }
@@ -124,20 +126,27 @@ public class CrimeListFragment extends Fragment {
     @Override
     public void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
-        if (resultCode == Activity.RESULT_OK) {
-            if (requestCode == REQUEST_CRIME) {
+        Log.d(CrimeListFragment.TAG, "@ " + resultCode + " " + requestCode);
+
+        if (requestCode == REQUEST_ADD) {
+            // 添加crime
+            updateUI();
+        } else if (requestCode == REQUEST_CRIME) {
+            // 只读、删除、修改crime
+            // 只读会返回Activity.RESULT_CANCEL，其他返回RESULT_OK
+            if (resultCode == Activity.RESULT_OK) {
                 UUID crimeId = (UUID) data.getSerializableExtra(CHANGED_CRIME_ID);
                 int position = CrimeLab.get(getActivity()).getPosition(crimeId);
                 if (position == -1) {
+                    // 删除
                     updateUI();
                 } else {
+                    // 修改
                     updateItemUI(position);
                 }
-
-            } else if (requestCode == REQUEST_ADD) {
-                updateUI();
             }
         }
+
     }
 
     @Override
