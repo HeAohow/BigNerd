@@ -1,6 +1,7 @@
 package com.heao.criminalintent;
 
 import android.app.Activity;
+import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.content.pm.ResolveInfo;
@@ -13,7 +14,6 @@ import android.provider.MediaStore;
 import android.text.Editable;
 import android.text.TextWatcher;
 import android.text.format.DateFormat;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuInflater;
@@ -65,6 +65,7 @@ public class CrimeFragment extends Fragment {
     private int photoWidth;
     private int photoHeight;
     private File mPhotoFile;
+    private Callbacks mCallbacks;
 
     public static CrimeFragment newInstance(UUID crimeId) {
         // 绑定Fragment参数
@@ -73,6 +74,22 @@ public class CrimeFragment extends Fragment {
         CrimeFragment fragment = new CrimeFragment();
         fragment.setArguments(args);
         return fragment;
+    }
+
+    public interface Callbacks {
+        void onCrimeUpdated(Crime crime);
+    }
+
+    @Override
+    public void onAttach(Context context) {
+        super.onAttach(context);
+        mCallbacks = (Callbacks) context;
+    }
+
+    @Override
+    public void onDetach() {
+        super.onDetach();
+        mCallbacks = null;
     }
 
     @Override
@@ -148,6 +165,7 @@ public class CrimeFragment extends Fragment {
             public void afterTextChanged(Editable editable) {
                 mCrime.setTitle(mTitleField.getText().toString());
                 // 修改
+                updateCrime();
                 returnResult();
             }
         });
@@ -155,17 +173,11 @@ public class CrimeFragment extends Fragment {
         mSolvedCheckBox.setOnCheckedChangeListener((compoundButton, b) -> {
             mCrime.setSolved(b);
             // 修改
+            updateCrime();
             returnResult();
         });
 
         mReportButton.setOnClickListener(v1 -> {
-//            Intent i = new Intent(Intent.ACTION_SEND);
-//            i.setType("text/plain");
-//            i.putExtra(Intent.EXTRA_TEXT, getCrimeReport());
-//            i.putExtra(Intent.EXTRA_SUBJECT, getString(R.string.crime_report_subject));
-//            i = Intent.createChooser(i, getString(R.string.send_report));
-//            startActivity(i);
-
             // 挑战之ShareCompat
             ShareCompat.IntentBuilder intentBuilder = ShareCompat.IntentBuilder.from(getActivity());
             intentBuilder.setType("text/plain");
@@ -239,6 +251,7 @@ public class CrimeFragment extends Fragment {
             case R.id.delete_crime:
                 CrimeLab.get(getActivity()).deleteCrime(mCrime);
                 // 删除
+                updateCrime();
                 returnResult();
                 getActivity().finish();
                 return true;
@@ -260,6 +273,7 @@ public class CrimeFragment extends Fragment {
             mCrime.setDate(date);
             mDateButton.setText(mCrime.getDateString());
             // 修改
+            updateCrime();
             returnResult();
         } else if (requestCode == REQUEST_CONTACT && data != null) {
             Uri contactUri = data.getData();
@@ -301,7 +315,6 @@ public class CrimeFragment extends Fragment {
     @Override
     public void onPause() {
         super.onPause();
-        CrimeLab.get(getActivity()).updateCrime(mCrime);
     }
 
 
@@ -339,5 +352,10 @@ public class CrimeFragment extends Fragment {
             Bitmap bitmap = PictureUtils.getScaledBitmap(mPhotoFile.getPath(), photoWidth, photoHeight);
             mPhotoView.setImageBitmap(bitmap);
         }
+    }
+
+    private void updateCrime(){
+        CrimeLab.get(getActivity()).updateCrime(mCrime);
+        mCallbacks.onCrimeUpdated(mCrime);
     }
 }

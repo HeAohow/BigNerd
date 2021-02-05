@@ -14,7 +14,8 @@ import androidx.viewpager2.widget.ViewPager2;
 import java.util.List;
 import java.util.UUID;
 
-public class CrimePagerActivity extends AppCompatActivity {
+public class CrimePagerActivity extends AppCompatActivity
+        implements CrimeFragment.Callbacks {
     private static final String EXTRA_CRIME_ID = "com.heao.criminalintent.crime_id";
     private ViewPager2 mViewPager;
     private Button mToFirstButton;
@@ -70,5 +71,10 @@ public class CrimePagerActivity extends AppCompatActivity {
         // ViewPager控件加载完成后再设置当前显示页面
         UUID crimeId = (UUID) getIntent().getSerializableExtra(EXTRA_CRIME_ID);
         mViewPager.setCurrentItem(CrimeLab.get(this).getPosition(crimeId));
+    }
+
+    @Override
+    public void onCrimeUpdated(Crime crime) {
+        // 空方法
     }
 }
