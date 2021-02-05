@@ -1,44 +1,57 @@
 package com.heao.criminalintent;
 
-import android.Manifest;
 import android.app.Activity;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.content.pm.ResolveInfo;
 import android.database.Cursor;
-import android.database.CursorWrapper;
+import android.graphics.Bitmap;
 import android.net.Uri;
 import android.os.Bundle;
 import android.provider.ContactsContract;
+import android.provider.MediaStore;
 import android.text.Editable;
 import android.text.TextWatcher;
 import android.text.format.DateFormat;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.ViewTreeObserver;
 import android.widget.Button;
 import android.widget.CheckBox;
 import android.widget.EditText;
+import android.widget.ImageButton;
+import android.widget.ImageView;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.core.app.ShareCompat;
-import androidx.core.content.ContextCompat;
+import androidx.core.content.FileProvider;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentManager;
 
+import com.heao.utils.PictureUtils;
+
+import java.io.File;
 import java.util.Date;
-import java.util.Objects;
+import java.util.List;
 import java.util.UUID;
 
 public class CrimeFragment extends Fragment {
     private static final String ARG_CRIME_ID = "crime_id";
     private static final String DIALOG_DATE = "DialogDate";
+    private static final String DIALOG_DETAIL_PHOTO = "DialogDetailPhoto";
+
     private static final int REQUEST_DATE = 0;
     private static final int REQUEST_CONTACT = 1;
+    private static final int REQUEST_PHOTO = 2;
+
+    private final String PHOTO_AUTHORITY = "com.heao.criminalintent.fileprovider";
 
     private Crime mCrime;
     private EditText mTitleField;
@@ -47,6 +60,11 @@ public class CrimeFragment extends Fragment {
     private Button mReportButton;
     private Button mSuspectButton;
     private Button mCallButton;
+    private ImageButton mPhotoButton;
+    private ImageView mPhotoView;
+    private int photoWidth;
+    private int photoHeight;
+    private File mPhotoFile;
 
     public static CrimeFragment newInstance(UUID crimeId) {
         // 绑定Fragment参数
@@ -78,6 +96,10 @@ public class CrimeFragment extends Fragment {
         mReportButton = v.findViewById(R.id.crime_report);
         mSuspectButton = v.findViewById(R.id.crime_suspect);
         mCallButton = v.findViewById(R.id.call_the_suspect);
+        mPhotoButton = v.findViewById(R.id.crime_camera);
+        mPhotoFile = CrimeLab.get(getActivity()).getPhotoFile(mCrime);
+        mPhotoView = v.findViewById(R.id.crime_photo);
+
         // 为控件绑定事件
         mTitleField.setText(mCrime.getTitle());
         mSolvedCheckBox.setChecked(mCrime.isSolved());
@@ -87,7 +109,28 @@ public class CrimeFragment extends Fragment {
             DatePickerFragment dialog = DatePickerFragment.newInstance(mCrime.getDate());
             // Fragment之间通信 1. 设置target 2. 直接调用target的onActivityResult方法
             dialog.setTargetFragment(CrimeFragment.this, REQUEST_DATE);
+            // 将fragment添加给fragmentManager并显示在屏幕上
+            // String用于在fragment队列中进行唯一标识
             dialog.show(fm, DIALOG_DATE);
+        });
+
+        mPhotoView.getViewTreeObserver().addOnGlobalLayoutListener(new ViewTreeObserver.OnGlobalLayoutListener() {
+            @Override
+            public void onGlobalLayout() {
+                photoWidth = mPhotoView.getMeasuredWidth();
+                photoHeight = mPhotoView.getMeasuredHeight();
+                mPhotoView.getViewTreeObserver().removeOnGlobalLayoutListener(this);
+                updatePhotoView();
+            }
+        });
+
+        mPhotoView.setOnClickListener(v5 -> {
+            if (mPhotoFile == null || !mPhotoFile.exists()) {
+                return;
+            }
+            FragmentManager fm = getFragmentManager();
+            DetailPhotoFragment dialog = DetailPhotoFragment.newInstance(mPhotoFile.getPath());
+            dialog.show(fm, DIALOG_DETAIL_PHOTO);
         });
 
         mTitleField.addTextChangedListener(new TextWatcher() {
@@ -133,7 +176,6 @@ public class CrimeFragment extends Fragment {
         });
 
         final Intent pickContact = new Intent(Intent.ACTION_PICK, ContactsContract.Contacts.CONTENT_URI);
-
         mSuspectButton.setOnClickListener(v2 -> {
             // TODO 权限请求弹窗
 //            ContextCompat.checkSelfPermission(getContext().getApplicationContext(), Manifest.permission.READ_CONTACTS) != PackageManager.PERMISSION_GRANTED)
@@ -142,6 +184,7 @@ public class CrimeFragment extends Fragment {
         if (mCrime.getSuspect() != null) {
             mSuspectButton.setText(mCrime.getSuspect());
         }
+        // 验证设备是否具有隐式intent请求的功能的应用
         PackageManager packageManager = getActivity().getPackageManager();
         if (packageManager.resolveActivity(pickContact, PackageManager.MATCH_DEFAULT_ONLY) == null) {
             mSuspectButton.setEnabled(false);
@@ -157,6 +200,30 @@ public class CrimeFragment extends Fragment {
                 startActivity(i);
             }
         });
+
+        final Intent captureImage = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
+        boolean canTakePhoto = mPhotoFile != null && captureImage.resolveActivity(packageManager) != null;
+        mPhotoButton.setEnabled(canTakePhoto);
+        mPhotoButton.setOnClickListener(v4 -> {
+            // 通过FileProvider将文件路径转化为uri
+            Uri uri = FileProvider.getUriForFile(getActivity(),
+                    PHOTO_AUTHORITY,
+                    mPhotoFile);
+            captureImage.putExtra(MediaStore.EXTRA_OUTPUT, uri);
+            // 获取intent的所有目标请求应用
+            List<ResolveInfo> cameraActivities = getActivity()
+                    .getPackageManager()
+                    .queryIntentActivities(captureImage, PackageManager.MATCH_DEFAULT_ONLY);
+            // 为intent的所有目标请求应用的activity都授予 FLAG_GRANT_WRITE_URI_PERMISSION 写入uri指定位置的权限
+            for (ResolveInfo activity : cameraActivities) {
+                getActivity().grantUriPermission(activity.activityInfo.packageName,
+                        uri,
+                        Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
+            }
+
+            startActivityForResult(captureImage, REQUEST_PHOTO);
+        });
+
         return v;
     }
 
@@ -224,6 +291,10 @@ public class CrimeFragment extends Fragment {
                     mCrime.setPhone(phoneNumber);
                 }
             }
+        } else if (requestCode == REQUEST_PHOTO) {
+            Uri uri = FileProvider.getUriForFile(getActivity(), PHOTO_AUTHORITY, mPhotoFile);
+            getActivity().revokeUriPermission(uri, Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
+            updatePhotoView();
         }
     }
 
@@ -259,5 +330,14 @@ public class CrimeFragment extends Fragment {
         String report = getString(R.string.crime_report,
                 mCrime.getTitle(), dateString, solvedString, suspect);
         return report;
+    }
+
+    private void updatePhotoView() {
+        if (mPhotoFile == null || !mPhotoFile.exists()) {
+            mPhotoView.setImageDrawable(null);
+        } else {
+            Bitmap bitmap = PictureUtils.getScaledBitmap(mPhotoFile.getPath(), photoWidth, photoHeight);
+            mPhotoView.setImageBitmap(bitmap);
+        }
     }
 }

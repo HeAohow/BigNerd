@@ -8,6 +8,7 @@ import android.database.sqlite.SQLiteDatabase;
 import com.heao.database.CrimeBaseHelper;
 import com.heao.database.CrimeCursorWrapper;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -127,5 +128,11 @@ public class CrimeLab {
                 null // orderBy
         );
         return new CrimeCursorWrapper(cursor);
+    }
+
+    public File getPhotoFile(Crime crime) {
+        // 获取 ?/<packageName>/files 目录
+        File filesDir = mContext.getFilesDir();
+        return new File(filesDir, crime.getPhotoFilename());
     }
 }
