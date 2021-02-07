@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="AppTheme">
+
+    </style>
+    <style name="BeatBoxButton" parent="Widget.MaterialComponents.Button">
+        <item name="android:backgroundTint">@color/dark_blue</item>
+        <item name="android:background">@drawable/button_beat_box_pressed</item>
+    </style>
+</resources>
