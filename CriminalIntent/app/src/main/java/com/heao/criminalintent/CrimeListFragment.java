@@ -190,16 +190,16 @@ public class CrimeListFragment extends Fragment {
         mCrimeRecyclerView = view.findViewById(R.id.crime_recycler_view);
         mCrimeRecyclerView.setLayoutManager(new LinearLayoutManager((getActivity())));
 
+        mAdapter = new CrimeAdapter(CrimeLab.get(getActivity()).getCrimes());
+        mCrimeRecyclerView.setAdapter(mAdapter);
+
         mItemTouchHelper = new ItemTouchHelper(new ItemTouchHelperCallBack(mAdapter));
         mItemTouchHelper.attachToRecyclerView(mCrimeRecyclerView);
 
         mNoCrimeText = view.findViewById(R.id.no_crime);
-
         if (savedInstanceState != null) {
             mSubtitleVisible = savedInstanceState.getBoolean(SAVED_SUBTITLE_VISIBLE);
         }
-
-        initializeUI();
 
         return view;
     }
@@ -274,12 +274,6 @@ public class CrimeListFragment extends Fragment {
     public void onSaveInstanceState(@NonNull Bundle outState) {
         super.onSaveInstanceState(outState);
         outState.putBoolean(SAVED_SUBTITLE_VISIBLE, mSubtitleVisible);
-    }
-
-    private void initializeUI() {
-        // 初始化数据项列表
-        mAdapter = new CrimeAdapter(CrimeLab.get(getActivity()).getCrimes());
-        mCrimeRecyclerView.setAdapter(mAdapter);
     }
 
     public void updateItemUI(int position) {
