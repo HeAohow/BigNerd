@@ -204,7 +204,7 @@ public class CrimeFragment extends Fragment {
 
         mCallButton.setOnClickListener(v3 -> {
             if (mCrime.getSuspect() == null) {
-                Toast.makeText(getActivity(), "Please choose a suspect!", Toast.LENGTH_SHORT).show();
+                Toast.makeText(getActivity(), R.string.choose_suspect_prompt, Toast.LENGTH_SHORT).show();
             } else {
                 Intent i = new Intent(Intent.ACTION_DIAL);
                 Uri phone = Uri.parse("tel:" + mCrime.getPhone());

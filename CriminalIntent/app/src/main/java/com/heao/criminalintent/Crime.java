@@ -71,7 +71,7 @@ public class Crime {
     }
 
     public String getDateString() {
-        return new SimpleDateFormat("EEE MMM dd h:mm a yyyy", Locale.US).format(getDate());
+        return new SimpleDateFormat("EEE MMM dd h:mm a yyyy", Locale.getDefault()).format(getDate());
     }
 
     public String getPhotoFilename() {
