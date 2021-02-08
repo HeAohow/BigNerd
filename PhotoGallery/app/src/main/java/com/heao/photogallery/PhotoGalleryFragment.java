@@ -1,17 +1,20 @@
 package com.heao.photogallery;
 
+import android.graphics.Bitmap;
+import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.Drawable;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.os.Handler;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
-import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.collection.LruCache;
 import androidx.fragment.app.Fragment;
 import androidx.recyclerview.widget.GridLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
@@ -20,15 +23,21 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class PhotoGalleryFragment extends Fragment {
-    public interface OnBottomCallBack {
+    private interface OnBottomCallBack {
         boolean isOnBottom();
 
         void onBottom();
     }
 
+    public static final LruCache<String, Bitmap> mCache = new LruCache<>(65);
     private static final String TAG = "PhotoGalleryFragment";
+
     private RecyclerView mPhotoRecyclerView;
     private List<GalleryItem> mItems = new ArrayList<>();
+    private ThumbnailDownloader<PhotoHolder> mThumbnailDownloader;
+    private GridLayoutManager mLayoutManager;
+    private ThumbnailDownloader<GalleryItem> mPreloadDownloader;
+
 
     public static PhotoGalleryFragment newInstance() {
         return new PhotoGalleryFragment();
@@ -80,7 +89,19 @@ public class PhotoGalleryFragment extends Fragment {
         @Override
         public void onBindViewHolder(@NonNull PhotoHolder holder, int position) {
             GalleryItem galleryItem = mGalleryItems.get(position);
-            Drawable placeholder = getResources().getDrawable(R.drawable.bill_up_close);
+            String url = galleryItem.getUrl();
+            Drawable placeholder;
+            Bitmap bitmap;
+
+            if ((bitmap = mCache.get(url)) == null) {
+                // 无cache则先使用占位符
+                placeholder = getResources().getDrawable(R.drawable.bill_up_close);
+                // 将图片下载请求加入等待队列，交给Handler处理
+                mThumbnailDownloader.queueThumbnail(holder, galleryItem.getUrl());
+            } else {
+                // 使用缓存
+                placeholder = new BitmapDrawable(getResources(), bitmap);
+            }
             holder.bindDrawable(placeholder);
         }
 
@@ -128,6 +149,25 @@ public class PhotoGalleryFragment extends Fragment {
         super.onCreate(savedInstanceState);
         setRetainInstance(true);
         new FetchItemsTask().execute();
+
+        // 在异步任务之后启动Handler，防止出现线程冲突
+        // 主线程Handler
+        Handler responseHandler = new Handler();
+        mThumbnailDownloader = new ThumbnailDownloader<>(responseHandler);
+        // 监听器，图片下载完之后及时更新UI
+        mThumbnailDownloader.setThumbnailDownloadListener((obj, bitmap) -> {
+            Drawable drawable = new BitmapDrawable(getResources(), bitmap);
+            obj.bindDrawable(drawable);
+            // 缓存当前显示界面的前十个和后十个item
+            int start = mLayoutManager.findFirstVisibleItemPosition();
+            int end = mLayoutManager.findLastVisibleItemPosition();
+            start = start < 0 ? 0 : start;
+            end = end >= mItems.size() ? mItems.size() - 1 : end;
+            Log.i(TAG, "First: " + start + " and Last: " + end);
+        });
+        mThumbnailDownloader.start();
+        mThumbnailDownloader.getLooper();
+        Log.i(TAG, "Background thread started");
     }
 
     @Nullable
@@ -138,14 +178,29 @@ public class PhotoGalleryFragment extends Fragment {
         View view = inflater.inflate(R.layout.fragment_photo_gallery, container, false);
 
         mPhotoRecyclerView = view.findViewById(R.id.photo_recycler_view);
-        mPhotoRecyclerView.setLayoutManager(new GridLayoutManager(getActivity(), 3));
-
+        // 通过layoutManager获取当前显示在屏幕上的item的position
+        mLayoutManager = new GridLayoutManager(getActivity(), 3);
+        mPhotoRecyclerView.setLayoutManager(mLayoutManager);
+        // 滑动监听器，滑至底部时加载下一页
         OnBottomListener listener = new OnBottomListener(mPhotoRecyclerView);
         mPhotoRecyclerView.addOnScrollListener(listener);
 
         setAdapter();
 
         return view;
+    }
+
+    @Override
+    public void onDestroyView() {
+        super.onDestroyView();
+        mThumbnailDownloader.clearQueue();
+    }
+
+    @Override
+    public void onDestroy() {
+        super.onDestroy();
+        mThumbnailDownloader.quit();
+        Log.i(TAG, "Background thread destroyed");
     }
 
     private void setAdapter() {
@@ -155,7 +210,6 @@ public class PhotoGalleryFragment extends Fragment {
             } else {
                 mPhotoRecyclerView.getAdapter().notifyDataSetChanged();
             }
-
         }
     }
 }

@@ -18,7 +18,8 @@ import java.util.List;
 public class FlickrFetchr {
     private static final String TAG = "FlickrFetchr";
     private static final String API_KEY = "69c5a775a821297340b4832cddcacab4";
-    private static int page = 0;
+    private static final int PER_PAGE = 45;
+    private static int START_PAGE = 0;
 
     public byte[] getUrlBytes(String urlSpec) throws IOException {
         URL url = new URL(urlSpec);
@@ -51,7 +52,7 @@ public class FlickrFetchr {
 
     public List<GalleryItem> fetchItems() {
         List<GalleryItem> items = new ArrayList<>();
-        page++;
+        START_PAGE++;
 
         try {
             String url = Uri.parse("https://api.flickr.com/services/rest/")
@@ -61,15 +62,15 @@ public class FlickrFetchr {
                     .appendQueryParameter("format", "json")
                     .appendQueryParameter("nojsoncallback", "1")
                     .appendQueryParameter("extras", "url_s")
-                    .appendQueryParameter("per_page", "30")
-                    .appendQueryParameter("page", String.valueOf(page))
+                    .appendQueryParameter("per_page", String.valueOf(PER_PAGE))
+                    .appendQueryParameter("page", String.valueOf(START_PAGE))
                     .build().toString();
 
             String jsonString = getUrlString(url);
             JSONObject jsonBody = new JSONObject(jsonString);
             parseItems(items, jsonBody);
 
-            Log.i(TAG, "Received JSON of page " + page + " : " + jsonBody.toString());
+            Log.i(TAG, "Received JSON of page " + START_PAGE + " : " + jsonBody.toString());
         } catch (IOException e) {
             Log.e(TAG, "Failed to fetch items", e);
         } catch (JSONException je) {
