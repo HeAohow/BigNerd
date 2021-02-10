@@ -8,6 +8,9 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.util.Log;
 import android.view.LayoutInflater;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
@@ -15,6 +18,7 @@ import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.appcompat.widget.SearchView;
 import androidx.collection.LruCache;
 import androidx.fragment.app.Fragment;
 import androidx.recyclerview.widget.GridLayoutManager;
@@ -30,8 +34,10 @@ public class PhotoGalleryFragment extends Fragment {
         void onBottom();
     }
 
-    public static final LruCache<String, Bitmap> mCache = new LruCache<>(100);
     private static final String TAG = "PhotoGalleryFragment";
+    private static final int CACHE_MAX_NUM = 100;
+    public static final LruCache<String, Bitmap> mCache = new LruCache<>(CACHE_MAX_NUM);
+
 
     private RecyclerView mPhotoRecyclerView;
     private List<GalleryItem> mItems = new ArrayList<>();
@@ -46,16 +52,28 @@ public class PhotoGalleryFragment extends Fragment {
      * 工具类 在后台异步获取图片的元信息
      */
     private class FetchItemsTask extends AsyncTask<Void, Void, List<GalleryItem>> {
+        private List<GalleryItem> mGalleryItems;
+        private String mQuery;
+
+        public FetchItemsTask(List<GalleryItem> items, String query) {
+            mGalleryItems = items;
+            mQuery = query;
+        }
+
         @Override
         protected List<GalleryItem> doInBackground(Void... voids) {
-            return new FlickrFetchr().fetchItems();
+            if (mQuery == null) {
+                return new FlickrFetchr().fetchRecentPhotos();
+            } else {
+                return new FlickrFetchr().searchPhotos(mQuery);
+            }
         }
 
         @Override
         protected void onPostExecute(List<GalleryItem> items) {
             super.onPostExecute(items);
             // 将所有新元素加至末尾
-            mItems.addAll(items);
+            mGalleryItems.addAll(items);
             setAdapter();
         }
     }
@@ -133,6 +151,9 @@ public class PhotoGalleryFragment extends Fragment {
                 onBottom();
             }
 
+            if (mItems.size() < 10) {
+                return;
+            }
             // 缓存当前显示界面的前十个和后十个item
             int start = mLayoutManager.findFirstVisibleItemPosition();
             int end = mLayoutManager.findLastVisibleItemPosition();
@@ -140,7 +161,7 @@ public class PhotoGalleryFragment extends Fragment {
             end = Math.min(end + 10, mItems.size() - 1);
             Log.i(TAG, "First: " + start + " and Last: " + end);
 
-            for(int i = 0; i < 10; i++) {
+            for (int i = 0; i < 10; i++) {
                 int position1 = start + i;
                 String url1 = mItems.get(position1).getUrl();
                 int position2 = end - i;
@@ -167,7 +188,7 @@ public class PhotoGalleryFragment extends Fragment {
         public void onBottom() {
             Log.i(TAG, "Recycler view is dragged to bottom.");
             // 创建新的异步任务并将获取的结果添加到mList中
-            new FetchItemsTask().execute();
+            updateItems();
         }
     }
 
@@ -176,7 +197,8 @@ public class PhotoGalleryFragment extends Fragment {
         super.onCreate(savedInstanceState);
         // 保证旋转时fragment状态不被销毁
         setRetainInstance(true);
-        new FetchItemsTask().execute();
+        setHasOptionsMenu(true);
+        updateItems();
 
         // 在异步任务之后启动Handler，防止出现线程冲突
         // 主线程Handler
@@ -209,6 +231,60 @@ public class PhotoGalleryFragment extends Fragment {
         setAdapter();
 
         return view;
+    }
+
+    @Override
+    public void onCreateOptionsMenu(@NonNull Menu menu, @NonNull MenuInflater inflater) {
+        super.onCreateOptionsMenu(menu, inflater);
+        inflater.inflate(R.menu.fragment_photo_gallery, menu);
+
+        MenuItem searchItem = menu.findItem(R.id.menu_item_search);
+        SearchView searchView = (SearchView) searchItem.getActionView();
+        searchView.setOnQueryTextListener(new SearchView.OnQueryTextListener() {
+            @Override
+            public boolean onQueryTextSubmit(String query) {
+                Log.d(TAG, "QueryTextSubmit: " + query);
+                QueryPreferences.setStoredQuery(getActivity(), query);
+                updateUI();
+                updateItems();
+                searchView.clearFocus();
+                return true;
+            }
+
+            @Override
+            public boolean onQueryTextChange(String newText) {
+                Log.d(TAG, "QueryTextChangeL " + newText);
+                return false;
+            }
+        });
+
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(@NonNull MenuItem item) {
+        int id = item.getItemId();
+        if (id == R.id.menu_item_clear) {
+            QueryPreferences.setStoredQuery(getActivity(), null);
+            updateUI();
+            updateItems();
+            return true;
+        }
+        return super.onOptionsItemSelected(item);
+    }
+
+    private void updateItems() {
+        String query = QueryPreferences.getStoredQuery(getActivity());
+        new FetchItemsTask(mItems, query).execute();
+    }
+
+    private void updateUI() {
+        if (mPhotoRecyclerView != null) {
+            mItems.clear();
+            mPhotoRecyclerView.getAdapter().notifyDataSetChanged();
+
+            mItems = new ArrayList<>();
+            mPhotoRecyclerView.setAdapter(new PhotoAdapter(mItems));
+        }
     }
 
     @Override
