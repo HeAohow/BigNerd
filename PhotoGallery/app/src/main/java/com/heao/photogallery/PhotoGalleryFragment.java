@@ -11,6 +11,7 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -29,20 +30,21 @@ public class PhotoGalleryFragment extends Fragment {
         void onBottom();
     }
 
-    public static final LruCache<String, Bitmap> mCache = new LruCache<>(65);
+    public static final LruCache<String, Bitmap> mCache = new LruCache<>(100);
     private static final String TAG = "PhotoGalleryFragment";
 
     private RecyclerView mPhotoRecyclerView;
     private List<GalleryItem> mItems = new ArrayList<>();
-    private ThumbnailDownloader<PhotoHolder> mThumbnailDownloader;
+    private ThumbnailDownloader<Integer> mThumbnailDownloader;
     private GridLayoutManager mLayoutManager;
-    private ThumbnailDownloader<GalleryItem> mPreloadDownloader;
-
 
     public static PhotoGalleryFragment newInstance() {
         return new PhotoGalleryFragment();
     }
 
+    /**
+     * 工具类 在后台异步获取图片的元信息
+     */
     private class FetchItemsTask extends AsyncTask<Void, Void, List<GalleryItem>> {
         @Override
         protected List<GalleryItem> doInBackground(Void... voids) {
@@ -93,11 +95,12 @@ public class PhotoGalleryFragment extends Fragment {
             Drawable placeholder;
             Bitmap bitmap;
 
-            if ((bitmap = mCache.get(url)) == null) {
+            bitmap = mCache.get(url);
+            if (bitmap == null) {
                 // 无cache则先使用占位符
                 placeholder = getResources().getDrawable(R.drawable.bill_up_close);
                 // 将图片下载请求加入等待队列，交给Handler处理
-                mThumbnailDownloader.queueThumbnail(holder, galleryItem.getUrl());
+                mThumbnailDownloader.queueThumbnail(position, galleryItem.getUrl());
             } else {
                 // 使用缓存
                 placeholder = new BitmapDrawable(getResources(), bitmap);
@@ -111,6 +114,9 @@ public class PhotoGalleryFragment extends Fragment {
         }
     }
 
+    /**
+     * 屏幕滚动监听器，当屏幕滚动到底部时，向后台异步请求新图片
+     */
     private class OnBottomListener extends RecyclerView.OnScrollListener
             implements OnBottomCallBack {
         RecyclerView mView;
@@ -123,7 +129,28 @@ public class PhotoGalleryFragment extends Fragment {
         public void onScrolled(@NonNull RecyclerView recyclerView, int dx, int dy) {
             super.onScrolled(recyclerView, dx, dy);
             if (isOnBottom()) {
+                Toast.makeText(getActivity(), "Loading next page...", Toast.LENGTH_SHORT).show();
                 onBottom();
+            }
+
+            // 缓存当前显示界面的前十个和后十个item
+            int start = mLayoutManager.findFirstVisibleItemPosition();
+            int end = mLayoutManager.findLastVisibleItemPosition();
+            start = Math.max(start - 10, 0);
+            end = Math.min(end + 10, mItems.size() - 1);
+            Log.i(TAG, "First: " + start + " and Last: " + end);
+
+            for(int i = 0; i < 10; i++) {
+                int position1 = start + i;
+                String url1 = mItems.get(position1).getUrl();
+                int position2 = end - i;
+                String url2 = mItems.get(position2).getUrl();
+                if (mCache.get(url1) == null) {
+                    mThumbnailDownloader.queueThumbnail(position1, url1);
+                }
+                if (mCache.get(url2) == null) {
+                    mThumbnailDownloader.queueThumbnail(position2, url2);
+                }
             }
         }
 
@@ -147,6 +174,7 @@ public class PhotoGalleryFragment extends Fragment {
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        // 保证旋转时fragment状态不被销毁
         setRetainInstance(true);
         new FetchItemsTask().execute();
 
@@ -156,14 +184,7 @@ public class PhotoGalleryFragment extends Fragment {
         mThumbnailDownloader = new ThumbnailDownloader<>(responseHandler);
         // 监听器，图片下载完之后及时更新UI
         mThumbnailDownloader.setThumbnailDownloadListener((obj, bitmap) -> {
-            Drawable drawable = new BitmapDrawable(getResources(), bitmap);
-            obj.bindDrawable(drawable);
-            // 缓存当前显示界面的前十个和后十个item
-            int start = mLayoutManager.findFirstVisibleItemPosition();
-            int end = mLayoutManager.findLastVisibleItemPosition();
-            start = start < 0 ? 0 : start;
-            end = end >= mItems.size() ? mItems.size() - 1 : end;
-            Log.i(TAG, "First: " + start + " and Last: " + end);
+            mPhotoRecyclerView.getAdapter().notifyItemChanged(obj);
         });
         mThumbnailDownloader.start();
         mThumbnailDownloader.getLooper();
@@ -205,6 +226,7 @@ public class PhotoGalleryFragment extends Fragment {
 
     private void setAdapter() {
         if (isAdded()) {
+            // 确保fragment已被添加给相关的activity
             if (mPhotoRecyclerView.getAdapter() == null) {
                 mPhotoRecyclerView.setAdapter(new PhotoAdapter(mItems));
             } else {
