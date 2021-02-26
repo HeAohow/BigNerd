@@ -2,6 +2,10 @@ package com.heao.photogallery;
 
 import androidx.annotation.NonNull;
 
+/**
+ * 存储图片的原信息
+ * 需要通过图片URL下载图片内容
+ */
 public class GalleryItem {
     private String mCaption;
     private String mId;

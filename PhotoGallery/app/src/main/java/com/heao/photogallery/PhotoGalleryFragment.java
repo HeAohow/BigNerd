@@ -1,5 +1,6 @@
 package com.heao.photogallery;
 
+import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.Drawable;
@@ -28,25 +29,25 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class PhotoGalleryFragment extends Fragment {
-    private interface OnBottomCallBack {
+    // RecyclerView滑动到底部时的回调函数
+    public interface OnBottomCallBack {
         boolean isOnBottom();
 
         void onBottom();
     }
 
     private static final String TAG = "PhotoGalleryFragment";
+    // 图片缓存
     private static final int CACHE_MAX_NUM = 100;
     public static final LruCache<String, Bitmap> mCache = new LruCache<>(CACHE_MAX_NUM);
-
+    public static PhotoGalleryFragment newInstance() {
+        return new PhotoGalleryFragment();
+    }
 
     private RecyclerView mPhotoRecyclerView;
     private List<GalleryItem> mItems = new ArrayList<>();
     private ThumbnailDownloader<Integer> mThumbnailDownloader;
     private GridLayoutManager mLayoutManager;
-
-    public static PhotoGalleryFragment newInstance() {
-        return new PhotoGalleryFragment();
-    }
 
     /**
      * 工具类 在后台异步获取图片的元信息
@@ -63,8 +64,10 @@ public class PhotoGalleryFragment extends Fragment {
         @Override
         protected List<GalleryItem> doInBackground(Void... voids) {
             if (mQuery == null) {
+                // 默认查询
                 return new FlickrFetchr().fetchRecentPhotos();
             } else {
+                // 根据用户输入SearchView的内容查询
                 return new FlickrFetchr().searchPhotos(mQuery);
             }
         }
@@ -78,6 +81,9 @@ public class PhotoGalleryFragment extends Fragment {
         }
     }
 
+    /**
+     * RecyclerView Holder
+     */
     private class PhotoHolder extends RecyclerView.ViewHolder {
         private ImageView mImageView;
 
@@ -91,6 +97,9 @@ public class PhotoGalleryFragment extends Fragment {
         }
     }
 
+    /**
+     * RecyclerView Adapter
+     */
     private class PhotoAdapter extends RecyclerView.Adapter<PhotoHolder> {
         private List<GalleryItem> mGalleryItems;
 
@@ -150,7 +159,7 @@ public class PhotoGalleryFragment extends Fragment {
                 Toast.makeText(getActivity(), "Loading next page...", Toast.LENGTH_SHORT).show();
                 onBottom();
             }
-
+            // TODO 这一块代码可以优化 借鉴别人的解决方案
             if (mItems.size() < 10) {
                 return;
             }
@@ -186,7 +195,6 @@ public class PhotoGalleryFragment extends Fragment {
 
         @Override
         public void onBottom() {
-            Log.i(TAG, "Recycler view is dragged to bottom.");
             // 创建新的异步任务并将获取的结果添加到mList中
             updateItems();
         }
@@ -199,6 +207,10 @@ public class PhotoGalleryFragment extends Fragment {
         setRetainInstance(true);
         setHasOptionsMenu(true);
         updateItems();
+
+//        Intent i = PollService.newIntent(getActivity());
+//        getActivity().startService(i);
+        PollService.setServiceAlarm(getActivity(), true);
 
         // 在异步任务之后启动Handler，防止出现线程冲突
         // 主线程Handler
@@ -219,7 +231,6 @@ public class PhotoGalleryFragment extends Fragment {
         super.onCreateView(inflater, container, savedInstanceState);
 
         View view = inflater.inflate(R.layout.fragment_photo_gallery, container, false);
-
         mPhotoRecyclerView = view.findViewById(R.id.photo_recycler_view);
         // 通过layoutManager获取当前显示在屏幕上的item的position
         mLayoutManager = new GridLayoutManager(getActivity(), 3);
@@ -258,31 +269,50 @@ public class PhotoGalleryFragment extends Fragment {
             }
         });
 
+        MenuItem toggleItem = menu.findItem(R.id.menu_item_toggle_polling);
+        if (PollService.isServiceAlarmOn(getActivity())) {
+            toggleItem.setTitle(R.string.stop_polling);
+        } else {
+            toggleItem.setTitle(R.string.start_polling);
+        }
     }
 
     @Override
     public boolean onOptionsItemSelected(@NonNull MenuItem item) {
         int id = item.getItemId();
         if (id == R.id.menu_item_clear) {
+            // 清除当前搜索的图片 并执行默认搜索
             QueryPreferences.setStoredQuery(getActivity(), null);
             updateUI();
             updateItems();
+            return true;
+        } else if (id == R.id.menu_item_toggle_polling) {
+            // PollService 开关实现
+            boolean shouldStartAlarm = !PollService.isServiceAlarmOn(getActivity());
+            PollService.setServiceAlarm(getActivity(), shouldStartAlarm);
+            // 更新 menu item 的显示
+            getActivity().invalidateOptionsMenu();
             return true;
         }
         return super.onOptionsItemSelected(item);
     }
 
+    /**
+     * 执行后台任务 获取相关搜索内容的 GalleryItem
+     */
     private void updateItems() {
         String query = QueryPreferences.getStoredQuery(getActivity());
         new FetchItemsTask(mItems, query).execute();
     }
 
+    /**
+     * 根据 mItems 更新 RecyclerView
+     */
     private void updateUI() {
         if (mPhotoRecyclerView != null) {
             mItems.clear();
             mPhotoRecyclerView.getAdapter().notifyDataSetChanged();
-
-            mItems = new ArrayList<>();
+//            mItems = new ArrayList<>();
             mPhotoRecyclerView.setAdapter(new PhotoAdapter(mItems));
         }
     }
@@ -296,10 +326,14 @@ public class PhotoGalleryFragment extends Fragment {
     @Override
     public void onDestroy() {
         super.onDestroy();
+        // 销毁后台线程
         mThumbnailDownloader.quit();
         Log.i(TAG, "Background thread destroyed");
     }
 
+    /**
+     * 初始化 或 更新RecyclerView视图
+     */
     private void setAdapter() {
         if (isAdded()) {
             // 确保fragment已被添加给相关的activity

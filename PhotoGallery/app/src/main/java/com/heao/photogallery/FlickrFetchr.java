@@ -20,7 +20,7 @@ public class FlickrFetchr {
     private static final String API_KEY = "69c5a775a821297340b4832cddcacab4";
     private static final int PER_PAGE = 30;
     private static int START_PAGE = 1;
-    private static final String FETCH_RECENTS_METHOD = "flickr.photos.getRecent";
+    private static final String FETCH_RECENT_METHOD = "flickr.photos.getRecent";
     private static final String SEARCH_METHOD = "flickr.photos.search";
     private static final Uri ENDPOINT = Uri
             .parse("https://api.flickr.com/services/rest/")
@@ -61,9 +61,10 @@ public class FlickrFetchr {
     }
 
     public List<GalleryItem> fetchRecentPhotos() {
-        String url = buildUrl(FETCH_RECENTS_METHOD, null);
+        String url = buildUrl(FETCH_RECENT_METHOD, null);
         return downloadGalleryItems(url);
     }
+
     public List<GalleryItem> searchPhotos(String query) {
         String url = buildUrl(SEARCH_METHOD, query);
         return downloadGalleryItems(url);
