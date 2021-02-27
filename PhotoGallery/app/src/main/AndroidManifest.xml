@@ -2,9 +2,18 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.heao.photogallery">
 
+<!--    自定义权限 在sendBroadcast中设置后 只有使用相同权限的应用才能接收相关intent-->
+    <permission
+        android:name="com.heao.photogallery.PRIVATE"
+        android:protectionLevel="signature" />
+
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+<!--    声明使用自定义权限-->
+    <uses-permission android:name="com.heao.photogallery.PRIVATE" />
+
     <application
         android:allowBackup="true"
         android:icon="@mipmap/ic_launcher"
@@ -12,14 +21,33 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.PhotoGallery">
+
         <activity android:name=".PhotoGalleryActivity">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
-
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
         <service android:name=".PollService" />
+
+<!--        注册Standalone Receiver即时应用进程已消亡也可以被激活-->
+        <receiver android:name=".StartupReceiver">
+            <intent-filter>
+<!--                该Receiver响应的intent类型-->
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+            </intent-filter>
+        </receiver>
+
+<!--        exported="false"声明仅监听应用内部广播-->
+        <receiver
+            android:name=".NotificationReceiver"
+            android:exported="false">
+<!--            设置最低优先级 确保最后收到广播消息是该组件-->
+            <intent-filter android:priority="-999">
+                <action android:name="com.heao.photogallery.ACTION_SHOW_NOTIFICATION" />
+            </intent-filter>
+        </receiver>
     </application>
 
 </manifest>

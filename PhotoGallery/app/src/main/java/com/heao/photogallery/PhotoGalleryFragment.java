@@ -1,6 +1,5 @@
 package com.heao.photogallery;
 
-import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.Drawable;
@@ -21,14 +20,13 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.widget.SearchView;
 import androidx.collection.LruCache;
-import androidx.fragment.app.Fragment;
 import androidx.recyclerview.widget.GridLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import java.util.ArrayList;
 import java.util.List;
 
-public class PhotoGalleryFragment extends Fragment {
+public class PhotoGalleryFragment extends VisibleFragment {
     // RecyclerView滑动到底部时的回调函数
     public interface OnBottomCallBack {
         boolean isOnBottom();
@@ -210,7 +208,7 @@ public class PhotoGalleryFragment extends Fragment {
 
 //        Intent i = PollService.newIntent(getActivity());
 //        getActivity().startService(i);
-        PollService.setServiceAlarm(getActivity(), true);
+//        PollService.setServiceAlarm(getActivity(), true);
 
         // 在异步任务之后启动Handler，防止出现线程冲突
         // 主线程Handler
