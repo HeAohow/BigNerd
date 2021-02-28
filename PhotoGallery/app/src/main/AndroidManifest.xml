@@ -2,7 +2,7 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.heao.photogallery">
 
-<!--    自定义权限 在sendBroadcast中设置后 只有使用相同权限的应用才能接收相关intent-->
+    <!--    自定义权限 在sendBroadcast中设置后 只有使用相同权限的应用才能接收相关intent-->
     <permission
         android:name="com.heao.photogallery.PRIVATE"
         android:protectionLevel="signature" />
@@ -11,7 +11,7 @@
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
-<!--    声明使用自定义权限-->
+    <!--    声明使用自定义权限-->
     <uses-permission android:name="com.heao.photogallery.PRIVATE" />
 
     <application
@@ -20,7 +20,8 @@
         android:label="@string/app_name"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
-        android:theme="@style/Theme.PhotoGallery">
+        android:theme="@style/Theme.PhotoGallery"
+        android:usesCleartextTraffic="true">
 
         <activity android:name=".PhotoGalleryActivity">
             <intent-filter>
@@ -28,24 +29,27 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+        <activity
+            android:name=".PhotoPageActivity"
+            android:configChanges="keyboardHidden|orientation|screenSize" />
 
         <service android:name=".PollService" />
 
-<!--        注册Standalone Receiver即时应用进程已消亡也可以被激活-->
+        <!--        注册Standalone Receiver即时应用进程已消亡也可以被激活-->
         <receiver android:name=".StartupReceiver">
             <intent-filter>
-<!--                该Receiver响应的intent类型-->
+                <!--                该Receiver响应的intent类型-->
                 <action android:name="android.intent.action.BOOT_COMPLETED" />
             </intent-filter>
         </receiver>
 
-<!--        exported="false"声明仅监听应用内部广播-->
+        <!--        exported="false"声明仅监听应用内部广播-->
         <receiver
             android:name=".NotificationReceiver"
             android:exported="false">
-<!--            设置最低优先级 确保最后收到广播消息是该组件-->
+            <!--            设置最低优先级 确保最后收到广播消息是该组件-->
             <intent-filter android:priority="-999">
-                <action android:name="com.heao.photogallery.ACTION_SHOW_NOTIFICATION" />
+                <action android:name="com.heao.photogallery.SHOW_NOTIFICATION" />
             </intent-filter>
         </receiver>
     </application>

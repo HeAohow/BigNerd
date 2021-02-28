@@ -1,5 +1,6 @@
 package com.heao.photogallery;
 
+import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.Drawable;
@@ -38,6 +39,7 @@ public class PhotoGalleryFragment extends VisibleFragment {
     // 图片缓存
     private static final int CACHE_MAX_NUM = 100;
     public static final LruCache<String, Bitmap> mCache = new LruCache<>(CACHE_MAX_NUM);
+
     public static PhotoGalleryFragment newInstance() {
         return new PhotoGalleryFragment();
     }
@@ -82,16 +84,29 @@ public class PhotoGalleryFragment extends VisibleFragment {
     /**
      * RecyclerView Holder
      */
-    private class PhotoHolder extends RecyclerView.ViewHolder {
+    private class PhotoHolder extends RecyclerView.ViewHolder
+            implements View.OnClickListener {
         private ImageView mImageView;
+        private GalleryItem mGalleryItem;
 
         public PhotoHolder(@NonNull View itemView) {
             super(itemView);
             mImageView = itemView.findViewById(R.id.item_image_view);
+            mImageView.setOnClickListener(this);
         }
 
         public void bindDrawable(Drawable drawable) {
             mImageView.setImageDrawable(drawable);
+        }
+
+        public void bindGalleryItem(GalleryItem galleryItem) {
+            mGalleryItem = galleryItem;
+        }
+
+        @Override
+        public void onClick(View view) {
+            Intent i = PhotoPageActivity.newIntent(getActivity(), mGalleryItem.getPhotoPageUri());
+            startActivity(i);
         }
     }
 
@@ -131,6 +146,7 @@ public class PhotoGalleryFragment extends VisibleFragment {
                 placeholder = new BitmapDrawable(getResources(), bitmap);
             }
             holder.bindDrawable(placeholder);
+            holder.bindGalleryItem(galleryItem);
         }
 
         @Override
@@ -205,10 +221,6 @@ public class PhotoGalleryFragment extends VisibleFragment {
         setRetainInstance(true);
         setHasOptionsMenu(true);
         updateItems();
-
-//        Intent i = PollService.newIntent(getActivity());
-//        getActivity().startService(i);
-//        PollService.setServiceAlarm(getActivity(), true);
 
         // 在异步任务之后启动Handler，防止出现线程冲突
         // 主线程Handler

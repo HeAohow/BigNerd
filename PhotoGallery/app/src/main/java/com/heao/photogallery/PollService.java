@@ -106,7 +106,6 @@ public class PollService extends IntentService {
             Notification notification = new NotificationCompat
                     .Builder(this, NOTIF_CHANNEL_ID)
                     .setTicker(resources.getString(R.string.new_pictures_title))
-//                    .setSmallIcon(android.R.drawable.ic_menu_report_image)
                     .setSmallIcon(R.drawable.bill_up_close)
                     .setContentTitle(resources.getString(R.string.new_pictures_title))
                     .setContentText(resources.getString(R.string.new_pictures_text))
@@ -131,6 +130,7 @@ public class PollService extends IntentService {
 
     /**
      * 检查后台网络可用性
+     *
      * @return 网络是否可用
      */
     @RequiresApi(api = Build.VERSION_CODES.M)
