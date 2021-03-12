@@ -1,11 +1,9 @@
 package com.heao.photogallery;
 
-import androidx.appcompat.app.AppCompatActivity;
-import androidx.fragment.app.Fragment;
-
 import android.content.Context;
 import android.content.Intent;
-import android.os.Bundle;
+
+import androidx.fragment.app.Fragment;
 
 public class PhotoGalleryActivity extends SingleFragmentActivity {
 

@@ -1,4 +1,4 @@
-package com.heao.photogallery;
+package com.heao.sunset;
 
 import android.os.Bundle;
 

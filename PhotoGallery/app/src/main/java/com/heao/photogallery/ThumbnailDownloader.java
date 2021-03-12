@@ -77,8 +77,6 @@ public class ThumbnailDownloader<T> extends HandlerThread {
         } catch (IOException e) {
             Log.e(TAG, "Error downloading image", e);
         }
-
-
     }
 
     @Override
